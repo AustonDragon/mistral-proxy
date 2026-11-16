@@ -1,0 +1,116 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: 编译 ${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            suffix: linux-amd64
+          - goos: linux
+            goarch: arm64
+            suffix: linux-arm64
+          - goos: windows
+            goarch: amd64
+            suffix: windows-amd64.exe
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go/go.mod
+          cache: false
+
+      - name: 测试
+        working-directory: go
+        run: go test ./...
+
+      - name: 编译
+        working-directory: go
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          go build -ldflags="-s -w" -trimpath \
+            -o mistral-proxy-${{ matrix.suffix }} .
+
+      - name: 生成校验和
+        working-directory: go
+        run: |
+          sha256sum mistral-proxy-${{ matrix.suffix }} \
+            > mistral-proxy-${{ matrix.suffix }}.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mistral-proxy-${{ matrix.suffix }}
+          path: |
+            go/mistral-proxy-${{ matrix.suffix }}
+            go/mistral-proxy-${{ matrix.suffix }}.sha256
+          if-no-files-found: error
+
+  release:
+    name: 发布
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: 列出产物
+        run: ls -lh artifacts
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          generate_release_notes: true
+          files: |
+            artifacts/mistral-proxy-linux-amd64
+            artifacts/mistral-proxy-linux-amd64.sha256
+            artifacts/mistral-proxy-linux-arm64
+            artifacts/mistral-proxy-linux-arm64.sha256
+            artifacts/mistral-proxy-windows-amd64.exe
+            artifacts/mistral-proxy-windows-amd64.exe.sha256
+          body: |
+            ## 下载
+
+            按服务器架构选择：
+
+            | 架构 | 文件 | 查看命令 |
+            |---|---|---|
+            | x86_64 | `mistral-proxy-linux-amd64` | `uname -m` → `x86_64` |
+            | ARM64 | `mistral-proxy-linux-arm64` | `uname -m` → `aarch64` |
+            | Windows | `mistral-proxy-windows-amd64.exe` | — |
+
+            ## 使用
+
+            ```bash
+            chmod +x mistral-proxy-linux-*
+            ./mistral-proxy-linux-arm64
+            ```
+
+            首次运行会在同目录生成 `config.json`，按需修改后重启。
+
+            完整说明见 [README](https://github.com/AustonDragon/mistral-proxy#readme)。
+
+            ## 校验
+
+            ```bash
+            sha256sum -c mistral-proxy-linux-arm64.sha256
+            ```

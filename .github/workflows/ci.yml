@@ -32,13 +32,13 @@ jobs:
           filters: |
             go:
               - 'go/**'
-              - '.github/workflows/ci.yml'
+              - '.github/workflows/*.yml'
             node:
               - 'node/**'
-              - '.github/workflows/ci.yml'
+              - '.github/workflows/*.yml'
             plugin:
               - 'newapi-plugin/**'
-              - '.github/workflows/ci.yml'
+              - '.github/workflows/*.yml'
 
   go:
     name: Go 测试
