@@ -1,10 +1,30 @@
 # mistral-proxy
 
+[![Release](https://img.shields.io/github/v/release/AustonDragon/mistral-proxy)](https://github.com/AustonDragon/mistral-proxy/releases/latest)
+[![CI](https://github.com/AustonDragon/mistral-proxy/actions/workflows/ci.yml/badge.svg)](https://github.com/AustonDragon/mistral-proxy/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/AustonDragon/mistral-proxy)](LICENSE)
+
 把 **Mistral 的 Chat Completions** 洗成**标准 OpenAI 格式**的转换代理。
 
 解决 Mistral 与标准 OpenAI 的 4 处不兼容，让 NewAPI、Claude Code 等 OpenAI 兼容客户端能正常使用 Mistral 及其托管模型（DeepSeek、GLM 等）。
 
 提供三种实现，转换逻辑完全一致，按部署环境任选其一。
+
+## 下载
+
+从 [Releases](https://github.com/AustonDragon/mistral-proxy/releases/latest) 下载对应平台的二进制，无需安装 Go：
+
+```bash
+# 确认架构
+uname -m          # x86_64 → amd64；aarch64 → arm64
+
+# 下载（以 arm64 为例）
+curl -LO https://github.com/AustonDragon/mistral-proxy/releases/latest/download/mistral-proxy-linux-arm64
+chmod +x mistral-proxy-linux-arm64
+./mistral-proxy-linux-arm64
+```
+
+首次运行会在同目录生成 `config.json`，修改后重启即可。
 
 ---
 
