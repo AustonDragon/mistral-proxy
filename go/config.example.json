@@ -1,0 +1,7 @@
+{
+  "listen": "127.0.0.1:8787",
+  "upstream": "https://api.mistral.ai",
+  "proxy": "",
+  "verbose": false,
+  "timeout": 0
+}

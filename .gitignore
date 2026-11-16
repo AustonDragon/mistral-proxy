@@ -1,0 +1,18 @@
+# 编译产物
+/go/mistral-proxy
+/go/mistral-proxy-*
+/go/*.exe
+/node_modules/
+
+# 本地配置
+/go/config.json
+*.local.json
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# 测试临时文件
+*.log

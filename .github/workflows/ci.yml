@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# 同一分支连续推送时取消上一次未完成的运行，省 CI 时间
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 先判断哪些目录变了，后面的 job 按结果决定跑不跑
+  changes:
+    name: 检测改动
+    runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.filter.outputs.go }}
+      node: ${{ steps.filter.outputs.node }}
+      plugin: ${{ steps.filter.outputs.plugin }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # paths-filter 需要完整历史才能正确对比 base 和 head
+          fetch-depth: 0
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            go:
+              - 'go/**'
+              - '.github/workflows/ci.yml'
+            node:
+              - 'node/**'
+              - '.github/workflows/ci.yml'
+            plugin:
+              - 'newapi-plugin/**'
+              - '.github/workflows/ci.yml'
+
+  go:
+    name: Go 测试
+    needs: changes
+    if: needs.changes.outputs.go == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go/go.mod
+          # 本项目零第三方依赖，没有 go.sum 可缓存
+          cache: false
+
+      - name: 格式检查
+        working-directory: go
+        run: |
+          if [ -n "$(gofmt -l .)" ]; then
+            echo "以下文件未格式化："
+            gofmt -l .
+            exit 1
+          fi
+
+      - name: Vet
+        working-directory: go
+        run: go vet ./...
+
+      - name: 测试
+        working-directory: go
+        run: go test ./... -v
+
+  node:
+    name: Node 测试
+    needs: changes
+    if: needs.changes.outputs.node == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: 单元测试
+        working-directory: node
+        run: node test-transform.mjs
+
+      - name: 端到端测试
+        working-directory: node
+        run: node test-e2e.mjs
+
+      - name: 前置代理测试
+        working-directory: node
+        run: node test-proxy.mjs
+
+  plugin:
+    name: NewAPI 插件测试
+    needs: changes
+    if: needs.changes.outputs.plugin == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: 插件测试
+        working-directory: newapi-plugin
+        run: node test-plugin.mjs
